@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  db:
+    container_name: product-db
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - product-network
+
+  pgadmin:
+    container_name: product-pgadmin
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "admin@pgadmin.com"
+      PGADMIN_DEFAULT_PASSWORD: "admin"
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    networks:
+      - product-network
+
+  backend:
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    ports:
+      - "5001:5001"
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=postgres;Username=username;Password=password"
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5001
+    networks:
+      - product-network
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    networks:
+      - product-network
+    environment:
+      VITE_APP_URL: "http://localhost:5001"
+
+networks:
+  product-network:
+    driver: bridge
+
+volumes:
+  db-data:
+    name: product-db-data
